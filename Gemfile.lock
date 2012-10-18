@@ -2,9 +2,9 @@ PATH
   remote: .
   specs:
     strong_parameters (0.1.4)
-      actionpack (>= 3.1, < 4.0)
-      activemodel (>= 3.1, < 4.0)
-      railties (>= 3.1, < 4.0)
+      actionpack (~> 3.1)
+      activemodel (~> 3.1)
+      railties (~> 3.1)
 
 GEM
   remote: http://rubygems.org/
