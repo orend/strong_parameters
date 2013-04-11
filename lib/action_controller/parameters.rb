@@ -217,9 +217,11 @@ module ActionController
         unpermitted_keys = unpermitted_keys(params)
 
         if unpermitted_keys.any?  
-          case self.class.action_on_unpermitted_parameters  
+          case action = self.class.action_on_unpermitted_parameters
           when :log  
             ActionController::Base.logger.info "Unpermitted parameters: #{unpermitted_keys.join(", ")}"
+          when :log_debug, :log_info, :log_warn, :log_error, :log_fatal
+            ActionController::Base.logger.send(action.to_s[4..-1], "Unpermitted parameters: #{unpermitted_keys.join(", ")}")
           when :raise  
             raise ActionController::UnpermittedParameters.new(unpermitted_keys)  
           end  

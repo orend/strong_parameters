@@ -73,7 +73,7 @@ Thanks to Nick Kallen for the permit idea!
 
 By default parameter keys that are not explicitly permitted will be logged in the development and test environment. In other environments these parameters will simply be filtered out and ignored.
 
-Additionally, this behaviour can be changed by changing the `config.action_controller.action_on_unpermitted_parameters` property in your environment files. If set to `:log` the unpermitted attributes will be logged, if set to `:raise` an exception will be raised.
+Additionally, this behaviour can be changed by changing the `config.action_controller.action_on_unpermitted_parameters` property in your environment files. If set to `:raise` an exception will be raised, if set to `:log` the unpermitted attributes will be logged with the `info` log level. You can further customize the log level by setting the `config.action_controller.action_on_unpermitted_parameters` property to `:log_debug`, `:log_warn`, `:log_error` or `:log_fatal` to get the corrisponding `debug`, `warn`, `error` and `fatal` log levels. Setting the property to `:log_info` is identical to setting it to `:log`.
 
 ## Use Outside of Controllers
 
