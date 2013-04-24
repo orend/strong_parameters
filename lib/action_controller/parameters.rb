@@ -10,34 +10,41 @@ require 'action_dispatch/http/upload'
 module ActionController
   class ParameterMissing < IndexError
     attr_reader :param
+    attr_reader :request_info
 
-    def initialize(param)
+    def initialize(param, request_info)
       @param = param
-      super("key not found: #{param}")
+      @request_info = request_info
+      super("key not found: #{param} in #{request_info[:controller]}##{request_info[:action]}")
     end
   end
 
   class UnpermittedParameters < IndexError
     attr_reader :params
+    attr_reader :request_info
 
-    def initialize(params)
+    def initialize(params, request_info)
       @params = params
-      super("found unpermitted parameters: #{params.join(", ")}")
+      @request_info = request_info
+      super("found unpermitted parameters: #{params.join(", ")} in #{request_info[:controller]}##{request_info[:action]}")
     end
   end
 
   class Parameters < ActiveSupport::HashWithIndifferentAccess
     attr_accessor :permitted
+    attr_reader :request_info
     alias :permitted? :permitted
-    
+
     cattr_accessor :action_on_unpermitted_parameters, :instance_accessor => false
 
     # Never raise an UnpermittedParameters exception because of these params
     # are present. They are added by Rails and it's of no concern.
     NEVER_UNPERMITTED_PARAMS = %w( controller action )
 
-    def initialize(attributes = nil)
+    def initialize(attributes = {})
       super(attributes)
+      @request_info = HashWithIndifferentAccess.new(:controller => attributes[:controller],
+                                                    :action => attributes[:action])
       @permitted = false
     end
 
@@ -52,7 +59,7 @@ module ActionController
     end
 
     def require(key)
-      self[key].presence || raise(ActionController::ParameterMissing.new(key))
+      self[key].presence || raise(ActionController::ParameterMissing.new(key, request_info))
     end
 
     alias :required :require
@@ -81,12 +88,13 @@ module ActionController
     def fetch(key, *args)
       convert_hashes_to_parameters(key, super)
     rescue KeyError, IndexError
-      raise ActionController::ParameterMissing.new(key)
+      raise ActionController::ParameterMissing.new(key, request_info)
     end
 
     def slice(*keys)
       self.class.new(super).tap do |new_instance|
         new_instance.instance_variable_set :@permitted, @permitted
+        new_instance.instance_variable_set :@request_info, @request_info
       end
     end
 
@@ -94,6 +102,7 @@ module ActionController
       self.class.new(self).tap do |duplicate|
         duplicate.default = default
         duplicate.instance_variable_set :@permitted, @permitted
+        duplicate.instance_variable_set :@request_info, @request_info
       end
     end
 
@@ -211,23 +220,23 @@ module ActionController
         end
       end
 
-      def unpermitted_parameters!(params)  
+      def unpermitted_parameters!(params)
         return unless self.class.action_on_unpermitted_parameters
-        
+
         unpermitted_keys = unpermitted_keys(params)
 
-        if unpermitted_keys.any?  
-          case self.class.action_on_unpermitted_parameters  
+        if unpermitted_keys.any?
+          case self.class.action_on_unpermitted_parameters
           when :log
             name = "unpermitted_parameters.action_controller"
-            ActiveSupport::Notifications.instrument(name, :keys => unpermitted_keys)
-          when :raise  
-            raise ActionController::UnpermittedParameters.new(unpermitted_keys)  
-          end  
-        end  
-      end  
-  
-      def unpermitted_keys(params)  
+            ActiveSupport::Notifications.instrument(name, :keys => unpermitted_keys, :request_info => request_info)
+          when :raise
+            raise ActionController::UnpermittedParameters.new(unpermitted_keys, request_info)
+          end
+        end
+      end
+
+      def unpermitted_keys(params)
         self.keys - params.keys - NEVER_UNPERMITTED_PARAMS
       end
   end
@@ -236,8 +245,10 @@ module ActionController
     extend ActiveSupport::Concern
 
     included do
-      rescue_from(ActionController::ParameterMissing) do |parameter_missing_exception|
-        render :text => "Required parameter missing: #{parameter_missing_exception.param}", :status => :bad_request
+      rescue_from(ActionController::ParameterMissing) do |exception|
+        render :text => "Required parameter missing: #{exception.param}" <<
+          " in #{exception.request_info[:controller]}##{exception.request_info[:action]}",
+          :status => :bad_request
       end
     end
 

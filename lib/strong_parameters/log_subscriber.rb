@@ -2,7 +2,8 @@ module StrongParameters
   class LogSubscriber < ActiveSupport::LogSubscriber
     def unpermitted_parameters(event)
       unpermitted_keys = event.payload[:keys]
-      debug("Unpermitted parameters: #{unpermitted_keys.join(", ")}")
+      request_info = event.payload[:request_info]
+      debug("Unpermitted parameters: #{unpermitted_keys.join(", ")} in #{request_info[:controller]}##{request_info[:action]}")
     end
 
     def logger

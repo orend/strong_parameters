@@ -25,6 +25,6 @@ class ActionControllerRequiredParamsTest < ActionController::TestCase
 
   test "missing parameters will be mentioned in the return" do
     post :create, { :magazine => { :name => "Mjallo!" } }
-    assert_equal "Required parameter missing: book", response.body
+    assert_equal "Required parameter missing: book in books#create", response.body
   end
 end

@@ -13,20 +13,35 @@ class LogOnUnpermittedParamsTest < ActiveSupport::TestCase
   test "logs on unexpected params" do
     params = ActionController::Parameters.new({
       :book => { :pages => 65 },
-      :fishing => "Turnips"
+      :fishing => "Turnips",
+      :controller => "books",
+      :action => "create"
     })
 
-    assert_logged("Unpermitted parameters: fishing") do
+    assert_logged("Unpermitted parameters: fishing in books#create") do
       params.permit(:book => [:pages])
     end
   end
 
   test "logs on unexpected nested params" do
     params = ActionController::Parameters.new({
-      :book => { :pages => 65, :title => "Green Cats and where to find then." }
+      :book => { :pages => 65, :title => "Green Cats and where to find then.",
+      :controller => "books",
+      :action => "update"}
     })
 
-    assert_logged("Unpermitted parameters: title") do
+    assert_logged("Unpermitted parameters: title in books#update") do
+      params.permit(:book => [:pages])
+    end
+  end
+
+   test "logs on unexpected params even when no controller or action info is supplied" do
+    params = ActionController::Parameters.new({
+      :book => { :pages => 65 },
+      :fishing => "Turnips"
+    })
+
+    assert_logged("Unpermitted parameters: fishing in ") do
       params.permit(:book => [:pages])
     end
   end
